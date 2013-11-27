@@ -1,3 +1,7 @@
 # PLY
 
-[![Build Status](https://travis-ci.org/iamed2/PLY.jl.png)](https://travis-ci.org/iamed2/PLY.jl)
+A Julia interface to the Python Lex-Yacc package.
+
+# Licence
+
+MIT
