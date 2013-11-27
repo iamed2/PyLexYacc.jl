@@ -35,7 +35,7 @@ tokrules = [
 		end
 ]
 
-vars = Dict()
+vars = Dict()  # symbol table
 parserules = [
 	:tokens              => tokrules[:tokens],
 	:precedence          => (
@@ -88,8 +88,9 @@ parserules = [
 ]
 
 l = lexer(tokrules)
-p = parser(parserules)
+p = parser(parserules, "statement")  # specifiy start rule here or through :start key in dict
 
+# replicates the input function using in calc.py
 function input(str::String)
 	print(str)
 	return readline(STDIN)

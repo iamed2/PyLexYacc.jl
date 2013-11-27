@@ -9,11 +9,14 @@ module PLY
 	@pyimport ply.lex as lex
 	@pyimport ply.yacc as yacc
 
-	const AttrDict = pyimport("attrdict")["AttrDict"]
+	const AttrDict = pyimport("attrdict")["AttrDict"]  # wrapper that allows attribute access
 
-	
-	const vars = pyeval("vars", PyObject)
-	const str = pyeval("str", PyObject)
+
+	const vars = pyeval("vars", PyObject)  # gets public attributes from an object
+	const str = pyeval("str", PyObject)  # gets a string representation of the object
+
+	# PLY relies on reflection an rule functions must have cPython function attributes 
+	# and a docstring (__doc__ property). This lambda wrapper enables this.
 	const funfactory = pyeval("lambda y: lambda x: y(x)", PyObject)
 
 
@@ -22,16 +25,19 @@ module PLY
 		t::PyObject
 	end
 
-	getindex(p::YaccProduction, i::Int) = p.t[:__getitem__](i-1)
+	# index methods map 1-indexing to 0-indexing
+	getindex(p::YaccProduction, i::Integer) = p.t[:__getitem__](i-1)
 	getindex(p::YaccProduction, r::Range) = p.t[:__getslice__](r.start-1, r.start-1+r.len)
-	setindex!(p::YaccProduction, value, i::Int) = p.t[:__setitem__](i-1, value)
+	setindex!(p::YaccProduction, value, i::Integer) = p.t[:__setitem__](i-1, value)
+
+	# map methods as functions
 	length(p::YaccProduction) = p.t[:__len__]()
-	lineno(p::YaccProduction, n::Int) = p.t[:lineno](n)
-	set_lineno(p::YaccProduction, n::Int, lineno::Int) = p.t[:set_lineno](n, lineno)
-	setlineno = set_lineno
-	linespan(p::YaccProduction, n::Int) = tuple(p.t[:linespan](n))
-	lexpos(p::YaccProduction, n::Int) = p.t[:lexpos](n)
-	lexspan(p::YaccProduction, n::Int) = p.t[:lexspan](n)
+	lineno(p::YaccProduction, n::Integer) = p.t[:lineno](n)
+	set_lineno(p::YaccProduction, n::Integer, lineno::Integer) = p.t[:set_lineno](n, lineno)
+	setlineno! = set_lineno
+	linespan(p::YaccProduction, n::Integer) = tuple(p.t[:linespan](n))
+	lexpos(p::YaccProduction, n::Integer) = p.t[:lexpos](n)
+	lexspan(p::YaccProduction, n::Integer) = p.t[:lexspan](n)
 	error(p::YaccProduction) = p.t[:error]()
 
 
@@ -67,12 +73,13 @@ module PLY
 		o::PyObject
 	end
 
+	# map methods as functions
 	token(lex::Lexer) = LexToken(lex.o[:token]())
-	skip(lex::Lexer, n::Int) = lex.o[:skip](n)
+	skip(lex::Lexer, n::Integer) = lex.o[:skip](n)
 
 
 	function rule(fn::Function)
-		function wrapper(x)
+		function wrapper(x)  # wraps input and unwraps output
 			ret = fn(LexToken(x), Lexer(x[:lexer]))
 			if isa(ret, LexToken)
 				return ret.o
@@ -90,23 +97,44 @@ module PLY
 	end
 
 	function parserule(fn::Function)
-		return pycall(funfactory, PyObject, (x)->fn(YaccProduction(x)))
+		return pycall(funfactory, PyObject, x->fn(YaccProduction(x)))  # wraps input
 	end
 
 	function parserule(fn::Function, pattern::String)
 		rule_func = parserule(fn)
-		rule_func[:__doc__] = pattern
+		rule_func[:__doc__] = pattern  # add docstring
 		return rule_func
 	end
 
-	function lexer(tokrules::Dict; kwargs...)
+
+	# Get a module as a symbol dict. Should be a convert method?
+	function Dict(m::Module)
+		return (Symbol=>Any)[name=>getfield(m, name) for name in names(m, true, false)]
+	end
+
+
+	function lexer(tokrules::Associative; kwargs...)
+		# first argument to lex.lex() is the module containing the rules
 		return lex.lex(pycall(AttrDict, PyObject, tokrules); kwargs...)
 	end
 
-	function parser(parserules::Dict; kwargs...)
+	# Allow rules to be specified as a symbol dict or a module.
+	lexer(m::Module; kwargs...) = lexer(Dict(m); kwargs...)
+
+
+	function parser(parserules::Associative, start::String; kwargs...)
+		# module is *not* first argument, and "module" cannot be used as a kwarg in Julia
+		# here is some magic to make it work.
 		push!(kwargs, (:module, pycall(AttrDict, PyObject, parserules)))
-		return pywrap(yacc.yacc(;start="statement", kwargs...))
+		return pywrap(yacc.yacc(;start=start, kwargs...))
 	end
+
+	parser(parserules::Associative; kwargs...) = parser(parserules, parserules[:start]; kwargs...)
+
+	# Allow rules to be specified as a symbol dict or a module.
+	parser(m::Module; kwargs...) = parser(Dict(m), m.start; kwargs...)
+	parser(m::Module, start::String; kwargs...) = parser(Dict(m), start; kwargs...)
+
 
 	function parse(parser, lexer, string; kwargs...)
 		return parser.parse(string; lexer=lexer, kwargs...)
