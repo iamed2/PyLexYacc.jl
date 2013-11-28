@@ -1,4 +1,4 @@
-The PLY.jl package is licensed under the MIT Expat License:
+The PyLexYacc.jl package is licensed under the MIT Expat License:
 
 > Copyright (c) 2013: Eric Davies.
 >

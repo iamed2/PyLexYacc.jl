@@ -1,10 +1,10 @@
 # This example mirrors http://www.dabeaz.com/ply/example.html
 
-using PLY
+using PyLexYacc
 
 
 module rules
-	using PLY
+	using PyLexYacc
 
 	tokens = (
 		"NAME","NUMBER",

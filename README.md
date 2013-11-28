@@ -1,4 +1,4 @@
-# PLY.jl
+# PyLexYacc.jl
 
 ## Description
 
@@ -13,11 +13,11 @@ Depends on the PyCall julia package and the [PLY](https://pypi.python.org/pypi/p
 This example mirrors [this one](http://www.dabeaz.com/ply/example.html), in Python.
 
 ```julia
-using PLY
+using PyLexYacc
 
 
 module rules
-	using PLY
+	using PyLexYacc
 
 	tokens = (
 		"NAME","NUMBER",

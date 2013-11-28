@@ -1,4 +1,4 @@
-module PLY
+module PyLexYacc
 	export rule, lexer, parser, parse, parserule, skip, lineno, set_lineno, lexpos, lexspan,
 		token, skip
 
