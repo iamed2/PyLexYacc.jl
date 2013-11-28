@@ -99,8 +99,8 @@ module rules
 		end
 end
 
-l = lexer(tokrules)
-p = parser(parserules, "statement")  # specifiy start rule here or through start variable in module
+l = lexer(rules)
+p = parser(rules, "statement")  # specifiy start rule here or through start variable in module
 
 # replicates the input function using in calc.py
 function input(str::String)
